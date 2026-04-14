@@ -48,5 +48,5 @@ python backend/app.py
 1. Open your browser and navigate to `http://127.0.0.1:5000/`.
 2. Click the **Start Capture** button.
 3. Watch the logs populate in real-time as background applications create network traffic. 
-4. **Test an "Attack"**: The model is trained to flag excessively small TCP packets or oversized UDP packets as an Attack. Open a new terminal and run a ping: `ping google.com -l 3500` (Simulating a large ICMP packet anomaly depending on OS limit). You will see the Alert banner trigger!
+4. **Test an "Attack"**: The model is trained to flag excessively small TCP packets or oversized UDP packets as an Attack. Open a new terminal and run a ping: `ping google.com -l 3500` (Simulating a large ICMP packet anomaly depending on OS limit). You will see the Alert banner trigger!!
 
