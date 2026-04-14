@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-IDS Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="script.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        
+        <header class="glass-header">
+            <div class="logo-area">
+                <div class="pulse-ring"></div>
+                <h1>AI-Base IDS <span class="badge">Real-Time</span></h1>
+            </div>
+            <div class="controls">
+                <button id="btn-toggle" class="btn btn-primary">Start Capture</button>
+            </div>
+        </header>
+
+        <div id="alert-banner" class="alert-banner hidden">
+            <span class="alert-icon">⚠️</span>
+            <span id="alert-text">Suspicious activity detected!</span>
+        </div>
+
+        <main class="dashboard-grid">
+            
+            <!-- Stats Row -->
+            <section class="metric-cards">
+                <div class="card glass-card">
+                    <div class="card-icon blue">🛡️</div>
+                    <div class="card-content">
+                        <h3>Total Packets</h3>
+                        <p id="stat-total" class="stat-value">0</p>
+                    </div>
+                </div>
+                <div class="card glass-card">
+                    <div class="card-icon green">✅</div>
+                    <div class="card-content">
+                        <h3>Normal Traffic</h3>
+                        <p id="stat-normal" class="stat-value">0</p>
+                    </div>
+                </div>
+                <div class="card glass-card">
+                    <div class="card-icon red">🚨</div>
+                    <div class="card-content">
+                        <h3>Threats Detected</h3>
+                        <p id="stat-attacks" class="stat-value">0</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Row -->
+            <section class="charts-area">
+                <div class="card glass-card chart-container">
+                    <h3>Traffic Flow (Last 10 Min)</h3>
+                    <canvas id="trafficChart"></canvas>
+                </div>
+                <div class="card glass-card chart-container">
+                    <h3>Threat vs Normal Ratio</h3>
+                    <canvas id="ratioChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Table Row -->
+            <section class="logs-area">
+                <div class="card glass-card">
+                    <h3>Live Packet Logs</h3>
+                    <div class="table-wrapper">
+                        <table id="logs-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Source IP</th>
+                                    <th>Dest IP</th>
+                                    <th>Protocol</th>
+                                    <th>Size</th>
+                                    <th>Classification</th>
+                                    <th>Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+</body>
+</html>
