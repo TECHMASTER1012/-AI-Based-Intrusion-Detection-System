@@ -39,7 +39,7 @@ python model/train_model.py
 This generates `trained_model.pkl` and `scaler.pkl` under `/model`.
 
 ### 3. Run the Application
-Start the Flask server. **(Remember: run the terminal as Administrator!)**
+Start the Flask server. **(Remember: run the terminal as Administrator)**
 ```bash
 python backend/app.py
 ```
