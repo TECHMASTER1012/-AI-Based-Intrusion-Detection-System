@@ -7,6 +7,15 @@ const alertBanner = document.getElementById('alert-banner');
 const alertText = document.getElementById('alert-text');
 const tbody = document.querySelector('#logs-table tbody');
 
+// IP Search & Tracer Elements
+const ipSearchInput = document.getElementById('ip-search-input');
+const btnSearchIp = document.getElementById('btn-search-ip');
+const ipTracerBar = document.getElementById('ip-tracer-bar');
+const tracerIpDisplay = document.getElementById('tracer-ip-display');
+const tracerCountBadge = document.getElementById('tracer-count-badge');
+const btnClearIp = document.getElementById('btn-clear-ip');
+const chartTrafficTitle = document.getElementById('chart-traffic-title');
+
 // Stats Elements
 const statTotal = document.getElementById('stat-total');
 const statNormal = document.getElementById('stat-normal');
@@ -17,6 +26,53 @@ let isCapturing = false;
 let pollInterval = null;
 let alertTimeout = null;
 let lastTopLogId = 0;
+let followedIP = null;
+
+// Follow IP Logic
+function followIP(ip) {
+    if (!ip || !ip.trim()) return;
+    followedIP = ip.trim();
+    ipSearchInput.value = followedIP;
+    
+    // UI Banner Updates
+    tracerIpDisplay.textContent = followedIP;
+    ipTracerBar.classList.remove('hidden');
+    chartTrafficTitle.textContent = `Traffic Flow (${followedIP})`;
+    
+    // Reset log diff check & trigger immediate refresh
+    lastTopLogId = 0;
+    fetchStats();
+    fetchLogs();
+}
+
+function clearIPFilter() {
+    followedIP = null;
+    ipSearchInput.value = '';
+    ipTracerBar.classList.add('hidden');
+    chartTrafficTitle.textContent = 'Traffic Flow (Real-Time)';
+    
+    lastTopLogId = 0;
+    fetchStats();
+    fetchLogs();
+}
+
+// Global window exposure for inline onclick handlers
+window.followIP = followIP;
+
+// IP Filter Event Listeners
+btnSearchIp.addEventListener('click', () => {
+    followIP(ipSearchInput.value);
+});
+
+ipSearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        followIP(ipSearchInput.value);
+    }
+});
+
+btnClearIp.addEventListener('click', () => {
+    clearIPFilter();
+});
 
 // Chart Instances
 let trafficChart, ratioChart;
@@ -137,7 +193,8 @@ function startPolling() {
 // Fetch Statistics and Update Charts
 async function fetchStats() {
     try {
-        const res = await fetch(`${API_BASE}/stats`);
+        const queryParam = followedIP ? `?ip=${encodeURIComponent(followedIP)}` : '';
+        const res = await fetch(`${API_BASE}/stats${queryParam}`);
         const json = await res.json();
         if (json.status !== 'success') return;
         
@@ -146,6 +203,10 @@ async function fetchStats() {
         statTotal.textContent = data.total_packets;
         statNormal.textContent = data.total_normal;
         statAttacks.textContent = data.total_attacks;
+
+        if (followedIP) {
+            tracerCountBadge.textContent = `${data.total_packets} Packets Scanned (${data.total_attacks} Threats)`;
+        }
 
         // Update Ratio Chart
         ratioChart.data.datasets[0].data = [data.total_normal, data.total_attacks];
@@ -166,18 +227,23 @@ async function fetchStats() {
 // Fetch Logs and Update Table
 async function fetchLogs() {
     try {
-        const res = await fetch(`${API_BASE}/logs`);
+        const queryParam = followedIP ? `?ip=${encodeURIComponent(followedIP)}` : '';
+        const res = await fetch(`${API_BASE}/logs${queryParam}`);
         const json = await res.json();
         if (json.status !== 'success') return;
         
         const logs = json.data;
-        if (!logs || logs.length === 0) return;
+        if (!logs) return;
 
-        // Only update DOM if new logs arrived
-        if (logs[0].id === lastTopLogId) return;
-        lastTopLogId = logs[0].id;
+        if (logs.length > 0 && logs[0].id === lastTopLogId) return;
+        if (logs.length > 0) lastTopLogId = logs[0].id;
         
         tbody.innerHTML = '';
+        if (logs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-sec); padding: 2rem;">No packet logs captured for IP: <strong>${followedIP}</strong></td></tr>`;
+            return;
+        }
+
         let recentAttackFound = false;
         
         logs.forEach((log, index) => {
@@ -189,8 +255,8 @@ async function fetchLogs() {
             
             tr.innerHTML = `
                 <td style="font-weight: 500; font-family: monospace;">${log.timestamp}</td>
-                <td>${log.source_ip}</td>
-                <td>${log.destination_ip}</td>
+                <td><span class="ip-tag" onclick="followIP('${log.source_ip}')" title="Click to follow ${log.source_ip}">${log.source_ip}</span></td>
+                <td><span class="ip-tag" onclick="followIP('${log.destination_ip}')" title="Click to follow ${log.destination_ip}">${log.destination_ip}</span></td>
                 <td>${log.protocol}</td>
                 <td>${log.packet_size} B</td>
                 <td><span class="pill ${pillClass}">${log.prediction}</span></td>
@@ -219,5 +285,6 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchLogs();
     startPolling();
 });
+
 
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI-IDS Dashboard</title>
+    <title>AI-IDS Real-Time Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -15,12 +15,27 @@
         <header class="glass-header">
             <div class="logo-area">
                 <div class="pulse-ring"></div>
-                <h1>AI-Base IDS <span class="badge">Real-Time</span></h1>
+                <h1>AI-Based IDS <span class="badge">Real-Time</span></h1>
             </div>
-            <div class="controls">
+            <div class="header-right">
+                <div class="ip-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="ip-search-input" placeholder="Search / Follow IP address..." autocomplete="off">
+                    <button id="btn-search-ip" class="btn-search" title="Follow IP">Follow IP</button>
+                </div>
                 <button id="btn-toggle" class="btn btn-primary">Start Capture</button>
             </div>
         </header>
+
+        <!-- Active IP Tracer Inspector Banner -->
+        <div id="ip-tracer-bar" class="ip-tracer-bar hidden">
+            <div class="tracer-info">
+                <span class="tracer-pulse"></span>
+                <span>📡 <strong>FOLLOWING TARGET IP:</strong> <code id="tracer-ip-display">---</code></span>
+                <span id="tracer-count-badge" class="tracer-badge">0 Packets Scanned</span>
+            </div>
+            <button id="btn-clear-ip" class="btn-clear-filter" title="Stop Following IP">✕ Clear Filter</button>
+        </div>
 
         <div id="alert-banner" class="alert-banner hidden">
             <span class="alert-icon">⚠️</span>
@@ -57,7 +72,7 @@
             <!-- Charts Row -->
             <section class="charts-area">
                 <div class="card glass-card chart-container">
-                    <h3>Traffic Flow (Last 10 Min)</h3>
+                    <h3 id="chart-traffic-title">Traffic Flow (Real-Time)</h3>
                     <canvas id="trafficChart"></canvas>
                 </div>
                 <div class="card glass-card chart-container">
@@ -69,7 +84,10 @@
             <!-- Table Row -->
             <section class="logs-area">
                 <div class="card glass-card">
-                    <h3>Live Packet Logs</h3>
+                    <div class="table-header-flex">
+                        <h3>Live Packet Logs</h3>
+                        <span class="table-hint">💡 <em>Click any IP address below to follow it</em></span>
+                    </div>
                     <div class="table-wrapper">
                         <table id="logs-table">
                             <thead>
@@ -95,3 +113,4 @@
     </div>
 </body>
 </html>
+

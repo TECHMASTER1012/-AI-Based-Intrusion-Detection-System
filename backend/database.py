@@ -55,22 +55,33 @@ def insert_log(source_ip, destination_ip, protocol, packet_size, prediction, con
     except Exception as e:
         print(f"Database insert error: {e}")
 
-def get_recent_logs(limit=100):
+def get_recent_logs(limit=100, ip_filter=None):
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT id, timestamp, source_ip, destination_ip, protocol, packet_size, prediction, confidence_score
-            FROM logs
-            ORDER BY id DESC
-            LIMIT ?
-        """, (limit,))
+        
+        if ip_filter and ip_filter.strip():
+            ip_val = ip_filter.strip()
+            cursor.execute("""
+                SELECT id, timestamp, source_ip, destination_ip, protocol, packet_size, prediction, confidence_score
+                FROM logs
+                WHERE source_ip = ? OR destination_ip = ?
+                ORDER BY id DESC
+                LIMIT ?
+            """, (ip_val, ip_val, limit))
+        else:
+            cursor.execute("""
+                SELECT id, timestamp, source_ip, destination_ip, protocol, packet_size, prediction, confidence_score
+                FROM logs
+                ORDER BY id DESC
+                LIMIT ?
+            """, (limit,))
+            
         rows = cursor.fetchall()
         conn.close()
         
         logs = []
         for row in rows:
-            # Extract HH:MM:SS from YYYY-MM-DD HH:MM:SS or return raw
             raw_ts = str(row[1]) if row[1] else ""
             display_time = raw_ts.split(" ")[1] if " " in raw_ts else raw_ts
             
@@ -90,28 +101,48 @@ def get_recent_logs(limit=100):
         print(f"Error reading logs: {e}")
         return []
 
-def get_stats():
+def get_stats(ip_filter=None):
     try:
         conn = get_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT COUNT(*) FROM logs")
-        total_packets = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM logs WHERE prediction = 'Attack'")
-        total_attacks = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM logs WHERE prediction = 'Normal'")
-        total_normal = cursor.fetchone()[0]
-        
-        # Per-second real-time traffic statistics (last 15 seconds)
-        cursor.execute("""
-            SELECT strftime('%H:%M:%S', timestamp) as sec, COUNT(*) 
-            FROM logs 
-            GROUP BY sec 
-            ORDER BY id DESC 
-            LIMIT 15
-        """)
+        if ip_filter and ip_filter.strip():
+            ip_val = ip_filter.strip()
+            cursor.execute("SELECT COUNT(*) FROM logs WHERE source_ip = ? OR destination_ip = ?", (ip_val, ip_val))
+            total_packets = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM logs WHERE (source_ip = ? OR destination_ip = ?) AND prediction = 'Attack'", (ip_val, ip_val))
+            total_attacks = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM logs WHERE (source_ip = ? OR destination_ip = ?) AND prediction = 'Normal'", (ip_val, ip_val))
+            total_normal = cursor.fetchone()[0]
+            
+            cursor.execute("""
+                SELECT strftime('%H:%M:%S', timestamp) as sec, COUNT(*) 
+                FROM logs 
+                WHERE source_ip = ? OR destination_ip = ?
+                GROUP BY sec 
+                ORDER BY id DESC 
+                LIMIT 15
+            """, (ip_val, ip_val))
+        else:
+            cursor.execute("SELECT COUNT(*) FROM logs")
+            total_packets = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM logs WHERE prediction = 'Attack'")
+            total_attacks = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM logs WHERE prediction = 'Normal'")
+            total_normal = cursor.fetchone()[0]
+            
+            cursor.execute("""
+                SELECT strftime('%H:%M:%S', timestamp) as sec, COUNT(*) 
+                FROM logs 
+                GROUP BY sec 
+                ORDER BY id DESC 
+                LIMIT 15
+            """)
+            
         time_series = [{"time": row[0], "count": row[1]} for row in cursor.fetchall()]
         time_series.reverse()
         
@@ -121,7 +152,8 @@ def get_stats():
             "total_packets": total_packets,
             "total_attacks": total_attacks,
             "total_normal": total_normal,
-            "time_series": time_series
+            "time_series": time_series,
+            "followed_ip": ip_filter.strip() if (ip_filter and ip_filter.strip()) else None
         }
     except Exception as e:
         print(f"Error reading stats: {e}")
@@ -129,8 +161,10 @@ def get_stats():
             "total_packets": 0,
             "total_attacks": 0,
             "total_normal": 0,
-            "time_series": []
+            "time_series": [],
+            "followed_ip": None
         }
+
 
 if __name__ == "__main__":
     init_db()

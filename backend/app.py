@@ -1,7 +1,7 @@
 import sys
 import os
 import warnings
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 
 # Suppress Scapy cryptography warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="scapy")
@@ -50,14 +50,15 @@ def get_status():
 
 @app.route("/api/logs", methods=["GET"])
 def logs():
-    return jsonify({"status": "success", "data": get_recent_logs(200)})
+    ip_filter = request.args.get("ip")
+    return jsonify({"status": "success", "data": get_recent_logs(200, ip_filter=ip_filter)})
 
 @app.route("/api/stats", methods=["GET"])
 def stats():
-    return jsonify({"status": "success", "data": get_stats()})
+    ip_filter = request.args.get("ip")
+    return jsonify({"status": "success", "data": get_stats(ip_filter=ip_filter)})
 
 if __name__ == "__main__":
     init_db()
     print("Flask Server running on http://127.0.0.1:5000")
     app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False, threaded=True)
-
