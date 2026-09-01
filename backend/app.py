@@ -59,5 +59,5 @@ def stats():
 if __name__ == "__main__":
     init_db()
     print("Flask Server running on http://127.0.0.1:5000")
-    # Using threaded=True so API isn't blocked by anything, though Scapy runs in its own thread
-    app.run(host="127.0.0.1", port=5000, debug=True, threaded=True)
+    app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False, threaded=True)
+

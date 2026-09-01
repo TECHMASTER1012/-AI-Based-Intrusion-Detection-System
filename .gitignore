@@ -5,9 +5,11 @@ __pycache__/
 venv/
 ENV/
 *.db
+*.db-wal
+*.db-shm
 *.sqlite3
-node_modules/
 node_modules/
 .DS_Store
 .vscode/
 .idea/
+

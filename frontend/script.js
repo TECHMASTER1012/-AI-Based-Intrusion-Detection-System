@@ -15,6 +15,8 @@ const statAttacks = document.getElementById('stat-attacks');
 // State
 let isCapturing = false;
 let pollInterval = null;
+let alertTimeout = null;
+let lastTopLogId = 0;
 
 // Chart Instances
 let trafficChart, ratioChart;
@@ -30,18 +32,20 @@ function initCharts() {
         data: {
             labels: [],
             datasets: [{
-                label: 'Packets per minute',
+                label: 'Packets per sec',
                 data: [],
                 borderColor: '#3B82F6',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                borderWidth: 2,
+                backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                borderWidth: 2.5,
                 fill: true,
-                tension: 0.4
+                tension: 0.3,
+                pointRadius: 2
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: { duration: 250 },
             plugins: { legend: { display: false } },
             scales: {
                 y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
@@ -66,6 +70,7 @@ function initCharts() {
             responsive: true,
             maintainAspectRatio: false,
             cutout: '75%',
+            animation: { duration: 300 },
             plugins: {
                 legend: { position: 'bottom' }
             }
@@ -80,9 +85,6 @@ async function checkStatus() {
         const data = await res.json();
         isCapturing = data.is_capturing;
         updateUIButtonState();
-        if (isCapturing) {
-            startPolling();
-        }
     } catch (e) {
         console.error("Failed to check status", e);
     }
@@ -98,14 +100,10 @@ btnToggle.addEventListener('click', async () => {
         if (data.status === 'success') {
             isCapturing = !isCapturing;
             updateUIButtonState();
-            
-            if (isCapturing) {
-                startPolling();
-            } else {
-                stopPolling();
-            }
+            fetchStats();
+            fetchLogs();
         } else {
-            alert(data.message); // e.g. model not trained
+            alert(data.message);
         }
     } catch (e) {
         console.error("Action failed", e);
@@ -126,20 +124,14 @@ function updateUIButtonState() {
     }
 }
 
-// Polling Data
+// Polling Data at 400ms for Sub-Second Real-Time Responsiveness
 function startPolling() {
-    if (pollInterval) return;
+    if (pollInterval) clearInterval(pollInterval);
     pollInterval = setInterval(() => {
+        checkStatus();
         fetchStats();
         fetchLogs();
-    }, 2000);
-}
-
-function stopPolling() {
-    if (pollInterval) {
-        clearInterval(pollInterval);
-        pollInterval = null;
-    }
+    }, 400);
 }
 
 // Fetch Statistics and Update Charts
@@ -151,7 +143,6 @@ async function fetchStats() {
         
         const data = json.data;
         
-        // Update Cards - animated counter effect could be added here
         statTotal.textContent = data.total_packets;
         statNormal.textContent = data.total_normal;
         statAttacks.textContent = data.total_attacks;
@@ -160,7 +151,7 @@ async function fetchStats() {
         ratioChart.data.datasets[0].data = [data.total_normal, data.total_attacks];
         ratioChart.update();
 
-        // Update Traffic Chart
+        // Update Traffic Chart (Real-time per second)
         const times = data.time_series.map(t => t.time);
         const counts = data.time_series.map(t => t.count);
         trafficChart.data.labels = times;
@@ -180,25 +171,24 @@ async function fetchLogs() {
         if (json.status !== 'success') return;
         
         const logs = json.data;
-        tbody.innerHTML = ''; // Clear current
+        if (!logs || logs.length === 0) return;
+
+        // Only update DOM if new logs arrived
+        if (logs[0].id === lastTopLogId) return;
+        lastTopLogId = logs[0].id;
         
+        tbody.innerHTML = '';
         let recentAttackFound = false;
         
         logs.forEach((log, index) => {
             const tr = document.createElement('tr');
-            
-            // Format timestamp
-            const timeObj = new Date(log.timestamp + "Z"); // SQLite gives UTC implicitly mostly depending on setup, but adding Z handles simple offsets
-            const timeStr = timeObj.toLocaleTimeString();
-
-            // Check if attack
             const isAttack = log.prediction === 'Attack';
-            if (isAttack && index < 5) recentAttackFound = true; // Check if recent 5 logs have attack
+            if (isAttack && index < 5) recentAttackFound = true;
             
             const pillClass = isAttack ? 'pill-attack' : 'pill-normal';
             
             tr.innerHTML = `
-                <td>${timeStr}</td>
+                <td style="font-weight: 500; font-family: monospace;">${log.timestamp}</td>
                 <td>${log.source_ip}</td>
                 <td>${log.destination_ip}</td>
                 <td>${log.protocol}</td>
@@ -212,7 +202,8 @@ async function fetchLogs() {
         // Handle Alert Banner
         if (recentAttackFound) {
             alertBanner.classList.remove('hidden');
-            setTimeout(() => { alertBanner.classList.add('hidden'); }, 3000);
+            if (alertTimeout) clearTimeout(alertTimeout);
+            alertTimeout = setTimeout(() => { alertBanner.classList.add('hidden'); }, 3000);
         }
 
     } catch (e) {
@@ -224,7 +215,9 @@ async function fetchLogs() {
 document.addEventListener('DOMContentLoaded', () => {
     initCharts();
     checkStatus();
-    // Fetch once immediately
     fetchStats();
     fetchLogs();
+    startPolling();
 });
+
+

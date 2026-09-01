@@ -54,12 +54,15 @@ class PacketCapture:
                     print(f"[!] ATTACK DETECTED: {src_ip} -> {dst_ip} | Proto: {protocol} | Size: {packet_size} | Conf: {confidence:.2f}")
 
     def _start_sniffing(self):
-        try:
-            # Running sniff without count will run until stop_filter returns True
-            sniff(prn=self._packet_callback, store=False, stop_filter=lambda x: not self.is_capturing)
-        except Exception as e:
-            print(f"Scapy sniffing error: {e}")
-            self.is_capturing = False
+        print("Packet sniffing daemon active...")
+        while self.is_capturing:
+            try:
+                # Use timeout=1 so the thread checks self.is_capturing every second
+                sniff(prn=self._packet_callback, store=False, timeout=1)
+            except Exception as e:
+                print(f"Scapy sniffing error: {e}")
+                time.sleep(1)
+        print("Packet sniffing daemon stopped.")
 
     def start(self):
         if not self.is_capturing:
@@ -74,10 +77,11 @@ class PacketCapture:
         if self.is_capturing:
             print("Stopping packet capture...")
             self.is_capturing = False
-            if self.thread:
-                self.thread.join(timeout=2)
+            if self.thread and self.thread.is_alive():
+                self.thread.join(timeout=2.5)
             return True
         return False
 
 # Global instance
 capture_instance = PacketCapture()
+
