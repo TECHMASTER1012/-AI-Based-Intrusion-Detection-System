@@ -58,7 +58,13 @@ def stats():
     ip_filter = request.args.get("ip")
     return jsonify({"status": "success", "data": get_stats(ip_filter=ip_filter)})
 
+@app.route("/api/telemetry", methods=["POST"])
+def receive_telemetry():
+    data = request.get_json(silent=True) or {}
+    device_id = data.get("device_id", "ESP32_IoT_Node")
+    return jsonify({"status": "success", "message": f"Telemetry received from {device_id}"}), 200
+
 if __name__ == "__main__":
     init_db()
-    print("Flask Server running on http://127.0.0.1:5000")
-    app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False, threaded=True)
+    print("Flask Server running on http://0.0.0.0:5000 (accessible on local LAN)")
+    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False, threaded=True)
