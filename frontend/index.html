@@ -23,6 +23,14 @@
                     <input type="text" id="ip-search-input" placeholder="Search / Follow IP address..." autocomplete="off">
                     <button id="btn-search-ip" class="btn-search" title="Follow IP">Follow IP</button>
                 </div>
+                <div class="simulation-box" style="display: flex; gap: 0.5rem; align-items: center;">
+                    <select id="sim-attack-type" style="background: rgba(15, 23, 42, 0.8); color: #F8FAFC; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.5rem 0.75rem; font-family: inherit; font-size: 0.85rem;">
+                        <option value="UDP Flood">UDP Volumetric Flood</option>
+                        <option value="ICMP Ping of Death">ICMP Buffer Overflow</option>
+                        <option value="TCP Malformed">TCP Malformed Sub-Header</option>
+                    </select>
+                    <button id="btn-sim-attack" class="btn" style="background: #EF4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Simulate Demo Threat</button>
+                </div>
                 <button id="btn-toggle" class="btn btn-primary">Start Capture</button>
             </div>
         </header>

@@ -74,6 +74,29 @@ btnClearIp.addEventListener('click', () => {
     clearIPFilter();
 });
 
+// Demo Threat Simulation Handler
+const btnSimAttack = document.getElementById('btn-sim-attack');
+const simAttackType = document.getElementById('sim-attack-type');
+
+if (btnSimAttack) {
+    btnSimAttack.addEventListener('click', async () => {
+        const attackType = simAttackType.value;
+        const targetIp = followedIP || "10.62.241.135";
+        try {
+            const res = await fetch(`${API_BASE}/simulate_attack`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ attack_type: attackType, target_ip: targetIp })
+            });
+            const data = await res.json();
+            fetchStats();
+            fetchLogs();
+        } catch (e) {
+            console.error("Simulation trigger error", e);
+        }
+    });
+}
+
 // Chart Instances
 let trafficChart, ratioChart;
 
