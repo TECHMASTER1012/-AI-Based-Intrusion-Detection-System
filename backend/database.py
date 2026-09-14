@@ -35,9 +35,74 @@ def init_db():
             confidence_score REAL
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS blocked_ips (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ip TEXT UNIQUE,
+            reason TEXT,
+            blocked_at TEXT,
+            status TEXT DEFAULT 'Active'
+        )
+    """)
     conn.commit()
     conn.close()
     print("Database initialized.")
+
+def block_ip(ip, reason="ML Fingerprint Anomaly Detected"):
+    if not ip or ip == "127.0.0.1" or ip == "localhost":
+        return False
+    try:
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO blocked_ips (ip, reason, blocked_at, status)
+            VALUES (?, ?, ?, 'Active')
+            ON CONFLICT(ip) DO UPDATE SET status='Active', blocked_at=excluded.blocked_at, reason=excluded.reason
+        """, (ip, reason, now_str))
+        conn.commit()
+        conn.close()
+        print(f"[FIREWALL MITIGATION] IP {ip} has been BLOCKED! Reason: {reason}")
+        return True
+    except Exception as e:
+        print(f"Error blocking IP {ip}: {e}")
+        return False
+
+def unblock_ip(ip):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM blocked_ips WHERE ip = ?", (ip,))
+        conn.commit()
+        conn.close()
+        print(f"[FIREWALL MITIGATION] IP {ip} has been UNBLOCKED.")
+        return True
+    except Exception as e:
+        print(f"Error unblocking IP {ip}: {e}")
+        return False
+
+def get_blocked_ips():
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, ip, reason, blocked_at, status FROM blocked_ips WHERE status = 'Active' ORDER BY id DESC")
+        rows = cursor.fetchall()
+        conn.close()
+        return [{"id": r[0], "ip": r[1], "reason": r[2], "blocked_at": r[3], "status": r[4]} for r in rows]
+    except Exception as e:
+        print(f"Error fetching blocked IPs: {e}")
+        return []
+
+def is_ip_blocked(ip):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM blocked_ips WHERE ip = ? AND status = 'Active'", (ip,))
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count > 0
+    except Exception as e:
+        return False
 
 
 def insert_log(source_ip, destination_ip, protocol, packet_size, prediction, confidence_score):

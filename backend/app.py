@@ -14,7 +14,7 @@ except ImportError:
 # Ensure we can import from project root
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from backend.database import init_db, get_recent_logs, get_stats
+from backend.database import init_db, get_recent_logs, get_stats, get_blocked_ips, unblock_ip, block_ip
 from backend.capture import capture_instance
 
 app = Flask(__name__, static_folder="../frontend")
@@ -58,6 +58,18 @@ def stats():
     ip_filter = request.args.get("ip")
     return jsonify({"status": "success", "data": get_stats(ip_filter=ip_filter)})
 
+@app.route("/api/blocked_ips", methods=["GET"])
+def get_blocked():
+    return jsonify({"status": "success", "data": get_blocked_ips()})
+
+@app.route("/api/unblock_ip", methods=["POST"])
+def unblock():
+    data = request.get_json(silent=True) or {}
+    ip = data.get("ip")
+    if ip and unblock_ip(ip):
+        return jsonify({"status": "success", "message": f"IP {ip} unblocked successfully."})
+    return jsonify({"status": "error", "message": "Failed to unblock IP."}), 400
+
 @app.route("/api/telemetry", methods=["POST"])
 def receive_telemetry():
     data = request.get_json(silent=True) or {}
@@ -90,7 +102,10 @@ def simulate_attack():
         prediction, confidence = predict_packet(protocol, packet_size)
         insert_log(attacker_ip, target_ip, protocol, packet_size, prediction, confidence)
 
-    return jsonify({"status": "success", "message": f"Simulated {count} {attack_type} packets towards {target_ip}"})
+    # Automatically trigger block logic
+    block_ip(attacker_ip, reason=f"Automated IPS Block: Simulated {attack_type} Threat")
+
+    return jsonify({"status": "success", "message": f"Simulated {count} {attack_type} packets towards {target_ip} and BLOCKED {attacker_ip}"})
 
 if __name__ == "__main__":
     init_db()

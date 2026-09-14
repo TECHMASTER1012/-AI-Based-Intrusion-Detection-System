@@ -20,6 +20,8 @@ const chartTrafficTitle = document.getElementById('chart-traffic-title');
 const statTotal = document.getElementById('stat-total');
 const statNormal = document.getElementById('stat-normal');
 const statAttacks = document.getElementById('stat-attacks');
+const statBlocked = document.getElementById('stat-blocked');
+const blockedTbody = document.getElementById('blocked-tbody');
 
 // State
 let isCapturing = false;
@@ -203,6 +205,59 @@ function updateUIButtonState() {
     }
 }
 
+// Unblock IP Handler
+async function unblockIP(ip) {
+    try {
+        const res = await fetch(`${API_BASE}/unblock_ip`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ip })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            fetchBlockedIPs();
+        } else {
+            alert(data.message);
+        }
+    } catch (e) {
+        console.error("Unblock IP error", e);
+    }
+}
+window.unblockIP = unblockIP;
+
+// Fetch Blocked IPs Table Data
+async function fetchBlockedIPs() {
+    try {
+        const res = await fetch(`${API_BASE}/blocked_ips`);
+        const json = await res.json();
+        if (json.status !== 'success') return;
+
+        const list = json.data || [];
+        if (statBlocked) statBlocked.textContent = list.length;
+        if (!blockedTbody) return;
+
+        blockedTbody.innerHTML = '';
+        if (list.length === 0) {
+            blockedTbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-sec); padding: 1.5rem;">No IP addresses currently blocked by IPS Firewall.</td></tr>`;
+            return;
+        }
+
+        list.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-weight: 600; font-family: monospace; color: #EF4444;"><span class="ip-tag" onclick="followIP('${item.ip}')">${item.ip}</span></td>
+                <td style="color: #F8FAFC;">${item.reason}</td>
+                <td style="font-size: 0.85rem; color: #94A3B8;">${item.blocked_at}</td>
+                <td><span class="pill pill-attack">Firewall Blocked</span></td>
+                <td><button onclick="unblockIP('${item.ip}')" style="background: rgba(16, 185, 129, 0.2); color: #10B981; border: 1px solid #10B981; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.8rem; font-weight: 600; cursor: pointer;">Unblock IP</button></td>
+            `;
+            blockedTbody.appendChild(tr);
+        });
+    } catch (e) {
+        console.error("Blocked IPs fetch error", e);
+    }
+}
+
 // Polling Data at 400ms for Sub-Second Real-Time Responsiveness
 function startPolling() {
     if (pollInterval) clearInterval(pollInterval);
@@ -210,6 +265,7 @@ function startPolling() {
         checkStatus();
         fetchStats();
         fetchLogs();
+        fetchBlockedIPs();
     }, 400);
 }
 

@@ -75,6 +75,13 @@
                         <p id="stat-attacks" class="stat-value">0</p>
                     </div>
                 </div>
+                <div class="card glass-card">
+                    <div class="card-icon purple" style="background: rgba(168, 85, 247, 0.15); color: #C084FC;">🛑</div>
+                    <div class="card-content">
+                        <h3>Blocked IPs (IPS)</h3>
+                        <p id="stat-blocked" class="stat-value">0</p>
+                    </div>
+                </div>
             </section>
 
             <!-- Charts Row -->
@@ -86,6 +93,32 @@
                 <div class="card glass-card chart-container">
                     <h3>Threat vs Normal Ratio</h3>
                     <canvas id="ratioChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Blocked IPs Active IPS Mitigation Table -->
+            <section class="blocked-area" style="grid-column: 1 / -1;">
+                <div class="card glass-card" style="border-top: 3px solid #EF4444;">
+                    <div class="table-header-flex">
+                        <h3>🛑 Active Firewall Mitigation & Blocked IP Register (IPS)</h3>
+                        <span class="table-hint">🛡️ <em>Automated Network Fingerprinting Active Response</em></span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table id="blocked-table">
+                            <thead>
+                                <tr>
+                                    <th>Blocked IP</th>
+                                    <th>Mitigation Trigger Reason</th>
+                                    <th>Timestamp</th>
+                                    <th>Mitigation Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="blocked-tbody">
+                                <tr><td colspan="5" style="text-align: center; color: var(--text-sec); padding: 1.5rem;">No IP addresses currently blocked.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 

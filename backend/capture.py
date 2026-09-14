@@ -8,7 +8,7 @@ import time
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from model.model_predict import predict_packet
-from backend.database import insert_log
+from backend.database import insert_log, block_ip, is_ip_blocked
 
 class PacketCapture:
     def __init__(self):
@@ -37,6 +37,19 @@ class PacketCapture:
                 
             # We only train model on TCP, UDP, ICMP for prototype
             if protocol in ["TCP", "UDP", "ICMP"]:
+                # Check if IP is already blocked
+                if is_ip_blocked(src_ip):
+                    # Flag as Blocked / Mitigated
+                    insert_log(
+                        source_ip=src_ip,
+                        destination_ip=dst_ip,
+                        protocol=protocol,
+                        packet_size=packet_size,
+                        prediction="Blocked",
+                        confidence_score=0.99
+                    )
+                    return
+
                 prediction, confidence = predict_packet(protocol, packet_size)
                 
                 # Insert into DB
@@ -49,9 +62,10 @@ class PacketCapture:
                     confidence_score=confidence
                 )
                 
-                # Terminal alert if attack
+                # IPS Auto-Mitigation Firewall Trigger
                 if prediction == "Attack":
-                    print(f"[!] ATTACK DETECTED: {src_ip} -> {dst_ip} | Proto: {protocol} | Size: {packet_size} | Conf: {confidence:.2f}")
+                    block_ip(src_ip, reason=f"IPS Automated Block: {protocol} Anomaly ({packet_size}B)")
+                    print(f"[!] IPS AUTOMATED FIREWALL BLOCK: {src_ip} -> {dst_ip} | Proto: {protocol} | Size: {packet_size} | Conf: {confidence:.2f}")
 
     def _start_sniffing(self):
         print("Packet sniffing daemon active...")
